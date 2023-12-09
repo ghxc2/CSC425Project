@@ -1,85 +1,97 @@
+import csv
 import numpy as np
-import pandas as pd
-
-# Load Data Set for AI
-data = pd.read_csv("tic-tac-toe.csv")
-print(data.info())
-print()
-print(data.head())
-
-# LETTER FOR AI
-ai_letter = "O"
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 
 
-def filter_chosen(board):
-    """
-    filter_chosen() will filter out all possible board combonations that have moves
-    in line with that of the current game board
-    :param board: board of the game being played
-    :return: filtered dataset containing only possible future plays
-    """
-    # Create possible moves data to check with
-    possible_moves = data.copy(True)
+#references: https://www.kaggle.com/code/sripadkarthik/tick-tack-toe-with-90-accuracy
+#https://github.com/cybercoder-naj/TicTacToeAI/blob/main/main.py?source=post_page-----bf6725ed44f9--------------------------------
+#https://github.com/aaditkapoor/tic-tac-toe-ml-project/blob/master/tic-tac-toe.ipynb
 
-    # Loop through current game board
-    for row in range(3):
-        for col in range(3):
-            # Determine what row of the table is being checked based on the database headers
-            data_col = data.columns[(3 * row) + col]
+class AI_Player:
+    def __init__(self, enemy_token, self_token):
+        # Define tokens for board
+        self.empty_token = 0
+        self.enemy_token = enemy_token
+        self.self_token = self_token
 
-            # Read current letter in spot on board
-            spot = board[row][col]
+    # Function to find the best move for the AI using minimax with alpha-beta pruning
+    def find_best_move(self, board):
+        best_val = float('-inf')
+        best_move = None
 
-            # Check if spot has been claimed
-            if spot != "":
+        empty_cells = self.get_empty_cells(board)
 
-                if ai_letter == "O":
-                    if spot == "X":
-                        spot = "O"
-                    if spot == "O":
-                        spot = "X"
+        for cell in empty_cells:
+            board[cell[0]][cell[1]] = self.self_token
+            move_val = self.minimax(board, 0, False, float('-inf'), float('inf'))
+            board[cell[0]][cell[1]] = self.empty_token
+            if move_val > best_val:
+                best_move = cell
+                best_val = move_val
+        print(f"BEST MOVE: {best_move}")
+        board[best_move[0]][best_move[1]] = self.self_token
+        return board
 
-                # filter out impossible moves
-                possible_moves = possible_moves.loc[data[data_col] == spot.lower()]
+    # Minimax function with alpha-beta pruning
+    def minimax(self, board, depth, maximizing_player, alpha, beta):
+        score = self.evaluate(board)
 
-    return possible_moves
+        if score is not None:
+            return score
 
+        empty_cells = self.get_empty_cells(board)
 
-def filter_wins(possible_moves):
-    """
-    filter_wins() takes an input of possible games moves, and filters out all win conditions possible
-    for future moves
-    :param possible_moves: possible future moves, best from filter_chosen()
-    :return: possible future wins the game can find
-    """
-    print(data["class"].loc[0])
-    wins = possible_moves.loc[data[data.columns[9]]]
-    return wins
+        if maximizing_player:
+            max_eval = float('-inf')
+            for cell in empty_cells:
+                board[cell[0]][cell[1]] = self.self_token
+                eval = self.minimax(board, depth + 1, False, alpha, beta)
+                board[cell[0]][cell[1]] = self.empty_token
+                max_eval = max(max_eval, eval)
+                alpha = max(alpha, eval)
+                if beta <= alpha:
+                    break
+            return max_eval
+        else:
+            min_eval = float('inf')
+            for cell in empty_cells:
+                board[cell[0]][cell[1]] = self.enemy_token
+                eval = self.minimax(board, depth + 1, True, alpha, beta)
+                board[cell[0]][cell[1]] = self.empty_token
+                min_eval = min(min_eval, eval)
+                beta = min(beta, eval)
+                if beta <= alpha:
+                    break
+            return min_eval
 
+        # Function to get all empty cells on the board
+    def get_empty_cells(self, board):
+        return [(i, j) for i in range(3) for j in range(3) if board[i][j] == self.empty_token]
 
-def search(board):
-    """
-    search() performs a search of a given board for the best possible move
+    # Function to evaluate the current state of the board
+    def evaluate(self, board):
+        if self.is_winner(board, self.self_token):
+            return 1
+        elif self.is_winner(board, self.enemy_token):
+            return -1
+        elif self.is_full(board):
+            return 0
+        else:
+            return None
 
-    :param board:
-    :return: (row, col) for best move
-    """
-    # Will handle search for best_move()
-    # MAY BE MERGED WITH best_move()
-    # should use data to determine best move
-    # TODO: Implement search method (Alpha-Beta preferable)\
-    possible = filter_chosen(board)
-    wins = filter_wins(possible)
-    print(wins)
+        # Function to check if the board is full
+    def is_full(self, board):
+        return all(board[i][j] != self.empty_token for i in range(3) for j in range(3))
 
-
-    # print(possible_moves)
-    return (0, 0)
-
-
-def best_move(letter, board):
-    # Should perform search to find best move
-    # will then run best move
-    move = search(board)
-
-    return
+    # Function to check if a player has won
+    def is_winner(self, board, player):
+        for i in range(3):
+            if all(board[i][j] == player for j in range(3)) or \
+                    all(board[j][i] == player for j in range(3)):
+                return True
+        if all(board[i][i] == player for i in range(3)) or \
+                all(board[i][2 - i] == player for i in range(3)):
+            return True
+        return False
