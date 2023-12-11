@@ -66,7 +66,7 @@ class AI_Player:
                     break
             return min_eval
 
-        # Function to get all empty cells on the board
+    # Function to get all empty cells on the board
     def get_empty_cells(self, board):
         return [(i, j) for i in range(3) for j in range(3) if board[i][j] == self.empty_token]
 
@@ -81,7 +81,7 @@ class AI_Player:
         else:
             return None
 
-        # Function to check if the board is full
+    # Function to check if the board is full
     def is_full(self, board):
         return all(board[i][j] != self.empty_token for i in range(3) for j in range(3))
 

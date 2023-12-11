@@ -6,6 +6,8 @@ May have GUI support eventually but for now is CLI
 """
 import numpy as np
 from AI_Player import AI_Player
+import Winner
+import GUI
 board = np.zeros((3, 3), dtype=int)
 board = np.array(board)
 player_1 = "User"
@@ -134,10 +136,6 @@ def check_board():
         running = False
 
 
-
-
-
-
 def get_user_turn(letter):
     """
     get_user_turn() Asks users where they would like to play their turn
@@ -193,7 +191,7 @@ def play():
     global current_player
     global player_1
     global player_2
-    player_1 = AI_Player(player_2_letter, player_1_letter)
+    # player_1 = AI_Player(player_2_letter, player_1_letter)
     player_2 = AI_Player(player_1_letter, player_2_letter)
     while running:
         print_board(board)
@@ -212,5 +210,6 @@ def play():
         print(winner + " Wins!")
     return
 
+Winner.init()
 
 play()
