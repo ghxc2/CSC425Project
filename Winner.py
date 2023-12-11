@@ -38,20 +38,11 @@ def init():
 
     print(df)
 
+    print(x_train)
+    print(y_train)
     # Create decision tree
     decider = DecisionTreeClassifier(criterion='entropy')
-    decider = decider.fit(x_train, y_train)
-
-    # Test
-    train_test_split(x_train, y_train, test_size=0.3, random_state=1)
-    tree.plot_tree(decider, class_names=["False", "True"], fontsize=5)
-    plt.show()
-
-    negative_test = np.array([2, 2, 1, 2, 1, 0, 1, 0, 0])
-    positive_test = np.array([2, 2, 2, 1, 1, 0, 1, 0, 0])
-    test_group = [negative_test, positive_test]
-    y_pred = decider.predict(test_group)
-    print(y_pred)
+    decider = decider.fit(x_train.values, y_train.values)
 
 
 def find_win(board):

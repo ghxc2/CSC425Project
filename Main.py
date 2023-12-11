@@ -8,6 +8,7 @@ import numpy as np
 from AI_Player import AI_Player
 import Winner
 import GUI
+
 board = np.zeros((3, 3), dtype=int)
 board = np.array(board)
 player_1 = "User"
@@ -18,6 +19,8 @@ empty_token = 0
 running = True
 current_player = 1
 winner = ""
+incorrect_win_finds = 0
+win_finds = 0
 
 
 def print_board(board):
@@ -125,6 +128,17 @@ def check_board():
     if winner != "":
         running = False
         return
+    decision_tree_win = Winner.find_win(board)
+
+    # Incrememnt win finds to compare for later
+    global win_finds
+    global incorrect_win_finds
+    if not running:
+        win_finds += 1
+        if not decision_tree_win:
+            incorrect_win_finds += 1
+    if running and decision_tree_win:
+        incorrect_win_finds += 1
 
     # Check if the board has filled
     empty_check = True
@@ -191,7 +205,7 @@ def play():
     global current_player
     global player_1
     global player_2
-    # player_1 = AI_Player(player_2_letter, player_1_letter)
+    player_1 = AI_Player(player_2_letter, player_1_letter)
     player_2 = AI_Player(player_1_letter, player_2_letter)
     while running:
         print_board(board)
@@ -208,8 +222,7 @@ def play():
         print("Draw")
     else:
         print(winner + " Wins!")
+    print(f"False Found Wins: {incorrect_win_finds}")
     return
-
 Winner.init()
-
 play()
