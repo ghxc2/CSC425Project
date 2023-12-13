@@ -8,8 +8,7 @@ import numpy as np
 from AI_Player import AI_Player
 import Winner
 
-results = [0, 0, 0]
-total_false_wins = 0
+
 class TicTacToeGame:
     def __init__(self, player_1, player_1_letter, player_2, player_2_letter, size):
         self.size = size
@@ -40,8 +39,10 @@ class TicTacToeGame:
             print(self.char_fix(" ".join(map(str, row))))
         print()
 
-    def char_fix(self, string):
+    @staticmethod
+    def char_fix(string):
         return str(string).replace("2", "x").replace("1", "o").replace("0", "_")
+
     def claim_spot(self, row: int, col: int, token):
         """
         claim_spot will set a given spot to the letter passed
@@ -49,7 +50,7 @@ class TicTacToeGame:
 
         :param row: row number of spot
         :param col: column number of spot
-        :param letter: letter to place
+        :param token: letter to place
         """
         self.board[row - 1][col - 1] = token
 
@@ -235,6 +236,7 @@ class TicTacToeGame:
             print(f"False Found Wins: {self.incorrect_win_finds}")
         return
 
+
 class TicTacToeWrapper:
     def __init__(self, player_1, player_2, size):
         self.results = [0, 0, 0]
@@ -283,6 +285,7 @@ class Player:
         self.player = player
         self.player_token = player_token
         self.number = number
+
 
 def choose_game():
     type = 0
