@@ -2,7 +2,6 @@
 Main Script for AI Tic-Tac-Toe Player
 
 This script will be the main script for controlling the tic-tac-toe game
-May have GUI support eventually but for now is CLI
 """
 import numpy as np
 from AI_Player import AI_Player

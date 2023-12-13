@@ -3,7 +3,11 @@ from tkinter import ttk
 from Main import TicTacToeGame, Player, TicTacToeWrapper
 from AI_Player import AI_Player
 import Winner
-
+"""
+UNUSED
+REQUIRED REWRITING ENTIRE GAME SYSTEM
+DEEMED UNNECCESARY
+"""
 # references: https://www.geeksforgeeks.org/python-grid-method-in-tkinter/
 # https://www.geeksforgeeks.org/tkinter-application-to-switch-between-different-page-frames/
 
@@ -185,14 +189,14 @@ class Start(tk.Frame):
 
 class GameFrame(tk.Frame):
     def __init__(self, parent, controller):
-        self.wrapper = controller.
         self.controller = controller
         for i in range(controller.game_size):
             for j in range(controller.game_size):
                 button = tk.Button(self, text="_", command=lambda : self.try_turn(button, i, j))
                 self.update_button(button, i, j)
     def try_turn(self, button, i, j):
-        if self.get_game_token() == "_"
+        if self.get_game_token() == "_":
+            x = True
     def update_button(self, button, i, j):
         text = self.get_game_token(i, j)
         button.configure(text=text)
