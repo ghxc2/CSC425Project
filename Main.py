@@ -84,7 +84,7 @@ class TicTacToeGame:
         """
 
         # if all strings in col are the same
-        for col in range(3):
+        for col in range(self.size):
             column = []
             for item in range(self.size):
                 column.append(self.board[item][col])
