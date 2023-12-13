@@ -189,20 +189,6 @@ class TicTacToeGame:
             else:
                 print("Taken, Please Enter Coordinates")
 
-    def get_user_turn(self, i, j, letter):
-
-        row = i
-        col = j
-        valid = self.check_spot_availability(row, col)
-        valid_choices = range(self.size + 1)[1:]
-        if row not in valid_choices or col not in valid_choices:
-            valid = False
-            print(f"Please Enter Valid Coordinates (1 - {self.size})")
-        if valid:
-            self.claim_spot(row, col, letter)
-            return
-        else:
-            raise Exception("Invalid")
     def turn(self):
         """
         turn() processes the turn for the current player
@@ -249,30 +235,6 @@ class TicTacToeGame:
         if self.size == 3:
             print(f"False Found Wins: {self.incorrect_win_finds}")
         return
-
-    def gui_play(self):
-        while self.running:
-            self.print_board()
-            self.gui_turn()
-            if self.current_player == 1:
-                self.current_player = 2
-            else:
-                self.current_player = 1
-
-            self.check_board()
-
-    def gui_turn(self):
-        if self.current_player == 1:
-            player = self.player_1
-            player_letter = self.player_1_letter
-        else:
-            player = self.player_2
-            player_letter = self.player_2_letter
-
-        if isinstance(player, AI_Player):
-            self.turn()
-        else:
-            self.wait = True
 
 class TicTacToeWrapper:
     def __init__(self, player_1, player_2, size):
