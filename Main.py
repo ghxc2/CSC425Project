@@ -7,12 +7,13 @@ May have GUI support eventually but for now is CLI
 import numpy as np
 from AI_Player import AI_Player
 import Winner
-import GUI
 
-
+results = [0, 0, 0]
+total_false_wins = 0
 class TicTacToeGame:
-    def __init__(self, player_1, player_1_letter, player_2, player_2_letter):
-        temp_board = np.zeros((3, 3), dtype=int)
+    def __init__(self, player_1, player_1_letter, player_2, player_2_letter, size):
+        self.size = size
+        temp_board = np.zeros((size, size), dtype=int)
         self.board = np.array(temp_board)
         self.player_1 = player_1
         self.player_1_letter = player_1_letter
@@ -25,11 +26,22 @@ class TicTacToeGame:
         self.incorrect_win_finds = 0
         self.win_finds = 0
 
+    def reset(self):
+        temp_board = np.zeros((self.size, self.size), dtype=int)
+        self.board = np.array(temp_board)
+        self.running = True
+        self.current_player = 1
+        self.winner = ""
+        self.incorrect_win_finds = 0
+        self.win_finds = 0
+
     def print_board(self):
         for row in self.board:
-            print(" ".join(map(str, row)).replace("2", "x").replace("1", "o").replace("0", "_"))
+            print(self.char_fix(" ".join(map(str, row))))
         print()
 
+    def char_fix(self, string):
+        return str(string).replace("2", "x").replace("1", "o").replace("0", "_")
     def claim_spot(self, row: int, col: int, token):
         """
         claim_spot will set a given spot to the letter passed
@@ -40,6 +52,7 @@ class TicTacToeGame:
         :param letter: letter to place
         """
         self.board[row - 1][col - 1] = token
+
     def check_spot_availability(self, row: int, col: int):
         """
         check_spot_availability will determine if a spot is open
@@ -72,7 +85,9 @@ class TicTacToeGame:
 
         # if all strings in col are the same
         for col in range(3):
-            column = [self.board[0][col], self.board[1][col], self.board[2][col]]
+            column = []
+            for item in range(self.size):
+                column.append(self.board[item][col])
             if len(set(column)) == 1 and self.board[0][col] != self.empty_token:
                 return self.board[0][col]
         return ""
@@ -85,9 +100,22 @@ class TicTacToeGame:
         """
 
         # if all strings in either diagonal are the same
-        if (self.board[0][0] == self.board[1][1] == self.board[2][2] and self.board[1][1] != self.empty_token)\
-                or (self.board[0][2] == self.board[1][1] == self.board[2][0] and self.board[1][1] != self.empty_token):
-            return self.board[1][1]
+        check = True
+        check_2 = True
+        for item in range(self.size):
+            # Left to Right
+            if not (self.board[0][0] == self.board[self.size - 1 - item][self.size - 1 - item] and
+                    self.board[0][0] != self.empty_token):
+                check = False
+
+            # Right To Left
+            if not (self.board[0][self.size - 1] == self.board[self.size - 1 - item][0 + item] and
+                    self.board[0][self.size - 1] != self.empty_token):
+                check_2 = False
+        if check:
+            return self.board[0][0]
+        if check_2:
+            return self.board[0][self.size - 1]
         return ""
 
     def check_board(self):
@@ -113,15 +141,20 @@ class TicTacToeGame:
         if self.winner != "":
             self.running = False
             return
-        decision_tree_win = Winner.find_win(self.board)
+
+        # Does not work in bigger than 3 area!
+        if self.size == 3:
+            decision_tree_win = Winner.find_win(self.board)
 
         # Incrememnt win finds to compare for later
         if not self.running:
             self.win_finds += 1
-            if not decision_tree_win:
+            if self.size == 3:
+                if not decision_tree_win:
+                    self.incorrect_win_finds += 1
+        if self.size == 3:
+            if self.running and decision_tree_win:
                 self.incorrect_win_finds += 1
-        if self.running and decision_tree_win:
-            self.incorrect_win_finds += 1
 
         # Check if the board has filled
         empty_check = True
@@ -145,9 +178,10 @@ class TicTacToeGame:
             row = int(input("Please Enter Row Number: "))
             col = int(input("Please Enter Column Number: "))
             valid = self.check_spot_availability(row, col)
-            if row not in (1, 2, 3) or col not in (1, 2, 3):
+            valid_choices = range(self.size + 1)[1:]
+            if row not in valid_choices or col not in valid_choices:
                 valid = False
-                print("Please Enter Valid Coordinates (1 - 3)")
+                print(f"Please Enter Valid Coordinates (1 - {self.size})")
             if valid:
                 self.claim_spot(row, col, letter)
                 return
@@ -173,7 +207,7 @@ class TicTacToeGame:
         if isinstance(player, AI_Player):
             # Allow CPU to move
             print("AI Is moving")
-            board = player.find_best_move(self.board)
+            self.board = player.find_best_move(self.board)
 
         else:
             # Allow User to move
@@ -196,10 +230,59 @@ class TicTacToeGame:
         if self.winner == "":
             print("Draw")
         else:
-            print(f"{self.winner} Wins!")
-        print(f"False Found Wins: {self.incorrect_win_finds}")
+            print(f"{self.char_fix(self.winner)} Wins!")
+        if self.size == 3:
+            print(f"False Found Wins: {self.incorrect_win_finds}")
         return
 
+class TicTacToeWrapper:
+    def __init__(self, player_1, player_2, size):
+        self.results = [0, 0, 0]
+        self.total_false_wins = 0
+        self.players = (player_1, player_2)
+        self.game = None
+        self.size = size
+        self.iterations = 1
+        self.make()
+
+    def make(self):
+        if self.players[0].number == 1:
+            self.game = TicTacToeGame(self.players[0].player, self.players[0].player_token, self.players[1].player,
+                                      self.players[1].player_token, self.size)
+        else:
+            self.game = TicTacToeGame(self.players[1].player, self.players[1].player_token, self.players[0].player,
+                                      self.players[0].player_token, self.size)
+
+    def play(self):
+        if self.iterations == 1:
+            self.game.play()
+        else:
+            self.play_loop()
+
+    def play_loop(self):
+        for i in range(self.iterations):
+            self.game.reset()
+            self.game.play()
+            win, false_wins = self.game.winner, self.game.incorrect_win_finds
+            self.total_false_wins += false_wins
+            if win == "":
+                self.results[0] += 1
+            elif win == "x":
+                self.results[1] += 1
+            elif win == "o":
+                self.results[2] += 1
+        print(f"Draws: {self.results[0]}")
+        print(f"X Wins: {self.results[1]}")
+        print(f"O Wins: {self.results[2]}")
+        if self.game.size == 3:
+            print(f"Overall False Wins: {self.total_false_wins}")
+
+
+class Player:
+    def __init__(self, player, player_token, number):
+        self.player = player
+        self.player_token = player_token
+        self.number = number
 
 def choose_game():
     type = 0
@@ -209,7 +292,10 @@ def choose_game():
         print("2. AI v AI Normal")
         print("3. AI v AI Loop")
         type = int(input("Select (1, 2, 3): "))
-
+    size = 0
+    while size <= 0:
+        size = int(input("Enter Board Size: "))
+    wrapper = None
     # Set Up Type
     if type == 1:
         print("Please Select Player Info: ")
@@ -228,48 +314,33 @@ def choose_game():
         if char.lower() == "x":
             ai_char = 1
         else:
-           ai_char = 2
+            ai_char = 2
 
         turn = 0
         while turn not in {1, 2}:
             turn = int(input("Player Goes First or Second (1, 2): "))
 
+        # Create Players
+        ai_turn = [item for item in range(3) if (item > 0 and item != turn)]
+        player_ai = Player(AI_Player(number, ai_char), ai_char, ai_turn[0])
+        player = Player("Player", number, turn)
+
         # Create Game
-        game = None
-        if turn == 1:
-            game = TicTacToeGame("Player", number, AI_Player(number, ai_char), ai_char)
-        else:
-            game = TicTacToeGame(AI_Player(number, ai_char), ai_char, "Player", number)
-        game.play()
-    elif type == 2:
-        game = TicTacToeGame(AI_Player(2, 1), 1, AI_Player(1, 2), 2)
-        game.play()
-    elif type == 3:
-        game = TicTacToeGame(AI_Player(2, 1), 1, AI_Player(1, 2), 2)
-        iterations = 0
-        while iterations <= 0:
-            iterations = int(input("Number Of Games To Play: "))
-        play_loop(game, iterations)
+        wrapper = TicTacToeWrapper(player_ai, player, size)
+    elif type == 2 or type == 3:
+        player_ai = Player(AI_Player(2, 1), 1, 1)
+        player_ai_2 = Player(AI_Player(1, 2), 2, 2)
+        wrapper = TicTacToeWrapper(player_ai, player_ai_2, size)
+        if type == 3:
 
-
-def play_loop(game, iterations):
-    results = [0, 0, 0]
-    total_false_wins = 0
-    for i in range(iterations):
-        win, false_wins = game.winner, game.incorrect_win_finds
-        total_false_wins += false_wins
-        if win == "":
-            results[0] += 1
-        elif win == "x":
-            results[1] += 1
-        elif win == "o":
-            results[2] += 1
-    print(f"Draws: {results[0]}")
-    print(f"X Wins: {results[1]}")
-    print(f"O Wins: {results[2]}")
-    print(f"Overall False Wins: {total_false_wins}")
+            iterations = 0
+            while iterations <= 0:
+                iterations = int(input("Number Of Games To Play: "))
+            wrapper.iterations = iterations
+    return wrapper
 
 
 if __name__ == "__main__":
     Winner.init()
-    choose_game()
+    wrapper = choose_game()
+    wrapper.play()
