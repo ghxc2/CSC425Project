@@ -1,191 +1,208 @@
 import tkinter as tk
-from itertools import cycle
-from tkinter import font
-from typing import NamedTuple
+from tkinter import ttk
+from Main import TicTacToeGame, Player, TicTacToeWrapper
+from AI_Player import AI_Player
+import Winner
 
-# THIS HAS TO BE CHANGED TO WORK WITH Main.py
-class Player(NamedTuple):
-    label: str
-    color: str
+# references: https://www.geeksforgeeks.org/python-grid-method-in-tkinter/
+# https://www.geeksforgeeks.org/tkinter-application-to-switch-between-different-page-frames/
 
-class Move(NamedTuple):
-    row: int
-    col: int
-    label: str = ""
 
-BOARD_SIZE = 3
-DEFAULT_PLAYERS = (
-    Player(label="X", color="blue"),
-    Player(label="O", color="green"),
-)
+class App(tk.Tk):
+    def __init__(self):
+        tk.Tk.__init__(self)
+        self.container = tk.Frame(self)
+        self.container.pack(side="top", fill="both", expand=True)
+        self.container.grid_rowconfigure(0, weight=1)
+        self.container.grid_columnconfigure(0, weight= 1)
+        self.game_size = 0
+        self.game_wrapper = None
+        self.player_token = ""
+        start_frame = Start(self.container, self)
+        start_frame.grid(row=0, column=0, sticky="nsew")
+        self.show_frame(start_frame)
 
-class TicTacToeGame:
-    def __init__(self, players=DEFAULT_PLAYERS, board_size=BOARD_SIZE):
-        self._players = cycle(players)
-        self.board_size = board_size
-        self.current_player = next(self._players)
-        self.winner_combo = []
-        self._current_moves = []
-        self._has_winner = False
-        self._winning_combos = []
-        self._setup_board()
+    def show_frame(self, frame):
+        frame.tkraise()
 
-    def _setup_board(self):
-        self._current_moves = [
-            [Move(row, col) for col in range(self.board_size)]
-            for row in range(self.board_size)
-        ]
-        self._winning_combos = self._get_winning_combos()
+    def generate_game_frame(self):
+        game_frame = GameFrame(self.container, self)
+        self.show_frame(game_frame)
 
-    def _get_winning_combos(self):
-        rows = [
-            [(move.row, move.col) for move in row]
-            for row in self._current_moves
-        ]
-        columns = [list(col) for col in zip(*rows)]
-        first_diagonal = [row[i] for i, row in enumerate(rows)]
-        second_diagonal = [col[j] for j, col in enumerate(reversed(columns))]
-        return rows + columns + [first_diagonal, second_diagonal]
-
-    def toggle_player(self):
-        """Return a toggled player."""
-        self.current_player = next(self._players)
-
-    def is_valid_move(self, move):
-        """Return True if move is valid, and False otherwise."""
-        row, col = move.row, move.col
-        move_was_not_played = self._current_moves[row][col].label == ""
-        no_winner = not self._has_winner
-        return no_winner and move_was_not_played
-
-    def process_move(self, move):
-        """Process the current move and check if it's a win."""
-        row, col = move.row, move.col
-        self._current_moves[row][col] = move
-        for combo in self._winning_combos:
-            results = set(self._current_moves[n][m].label for n, m in combo)
-            is_win = (len(results) == 1) and ("" not in results)
-            if is_win:
-                self._has_winner = True
-                self.winner_combo = combo
-                break
-
-    def has_winner(self):
-        """Return True if the game has a winner, and False otherwise."""
-        return self._has_winner
-
-    def is_tied(self):
-        """Return True if the game is tied, and False otherwise."""
-        no_winner = not self._has_winner
-        played_moves = (
-            move.label for row in self._current_moves for move in row
+    def move(self, i, j):
+        self.game_wrapper.game.get_user_turn(i, j, self.player_token)
+class Start(tk.Frame):
+    def __init__(self, parent, controller):
+        # Create Start Frame
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        label = ttk.Label(self, text="TicTacToe Player")
+        label.pack()
+        # Select Type of Game To Play
+        label_type = ttk.Label(self, text="Please Select Game Type to Play:")
+        label_type.pack()
+        self.types = ["Player v AI", "AI v AI Normal", "AI v AI Loop"]
+        self.combo_type = ttk.Combobox(
+            self,
+            state="readonly",
+            values=self.types
         )
-        return no_winner and all(played_moves)
+        self.combo_type.pack()
 
-    def reset_game(self):
-        """Reset the game state to play again."""
-        for row, row_content in enumerate(self._current_moves):
-            for col, _ in enumerate(row_content):
-                row_content[col] = Move(row, col)
-        self._has_winner = False
-        self.winner_combo = []
+        # Enter Board Size
+        label_size = ttk.Label(self, text="Enter Board Size: ")
+        label_size.pack()
+        self.entry_size = ttk.Entry(self)
+        self.entry_size.pack()
 
-class TicTacToeBoard(tk.Tk):
-    def __init__(self, game):
-        super().__init__()
-        self.title("Tic-Tac-Toe Game")
-        self._cells = {}
-        self._game = game
-        self._create_menu()
-        self._create_board_display()
-        self._create_board_grid()
+        # Error Spot
+        self.label_error = ttk.Label(self, text="")
+        self.label_error.pack()
+        # Enter Button
+        self.enter_button = ttk.Button(self, text="Enter", command=self.checker)
+        self.enter_button.pack()
+    def checker(self):
+        size = 0
+        error = ""
+        try:
+            size = int(self.entry_size.get())
+        except ValueError:
+            size = -1
+        if size <= 0:
+            error += "Please Enter a Number Greater than 0\n"
+        if self.combo_type.get() == "":
+            error += "Please Select Game Type\n"
 
-    def _create_menu(self):
-        menu_bar = tk.Menu(master=self)
-        self.config(menu=menu_bar)
-        file_menu = tk.Menu(master=menu_bar)
-        file_menu.add_command(label="Play Again", command=self.reset_board)
-        file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=quit)
-        menu_bar.add_cascade(label="File", menu=file_menu)
+        self.label_error.config(text=error)
+        if error == "":
 
-    def _create_board_display(self):
-        display_frame = tk.Frame(master=self)
-        display_frame.pack(fill=tk.X)
-        self.display = tk.Label(
-            master=display_frame,
-            text="Ready?",
-            font=font.Font(size=28, weight="bold"),
+            game_type = self.types.index(self.combo_type.get())
+            self.controller.game_size = size
+            if game_type == 0:
+                self.player_creator()
+            if game_type == 1:
+                self.ai_game()
+            if game_type == 2:
+                self.loop_creator()
+
+    def player_creator(self):
+        # Player Info
+        label_player = tk.Label(self, text="Please Select Player Info")
+        label_player.pack()
+
+        # Token Selection
+        label_token = tk.Label(self, text="x or o")
+        label_token.pack()
+        self.tokens = ["o", "x"]
+        self.combo_char = ttk.Combobox(
+            self,
+            state="readonly",
+            values=self.tokens
         )
-        self.display.pack()
+        self.combo_char.pack()
 
-    def _create_board_grid(self):
-        grid_frame = tk.Frame(master=self)
-        grid_frame.pack()
-        for row in range(self._game.board_size):
-            self.rowconfigure(row, weight=1, minsize=50)
-            self.columnconfigure(row, weight=1, minsize=75)
-            for col in range(self._game.board_size):
-                button = tk.Button(
-                    master=grid_frame,
-                    text="",
-                    font=font.Font(size=36, weight="bold"),
-                    fg="black",
-                    width=3,
-                    height=2,
-                    highlightbackground="lightblue",
-                )
-                self._cells[button] = (row, col)
-                button.bind("<ButtonPress-1>", self.play)
-                button.grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
+        # Turn selection
+        label_turn = tk.Label(self, text="Player Goes First or Second")
+        label_turn.pack()
+        self.turns = ["First", "Second"]
+        self.combo_turns = ttk.Combobox(
+            self,
+            state="readonly",
+            values=self.turns
+        )
+        self.combo_turns.pack()
 
-    def play(self, event):
-        """Handle a player's move."""
-        clicked_btn = event.widget
-        row, col = self._cells[clicked_btn]
-        move = Move(row, col, self._game.current_player.label)
-        if self._game.is_valid_move(move):
-            self._update_button(clicked_btn)
-            self._game.process_move(move)
-            if self._game.is_tied():
-                self._update_display(msg="Tied game!", color="red")
-            elif self._game.has_winner():
-                self._highlight_cells()
-                msg = f'Player "{self._game.current_player.label}" won!'
-                color = self._game.current_player.color
-                self._update_display(msg, color)
-            else:
-                self._game.toggle_player()
-                msg = f"{self._game.current_player.label}'s turn"
-                self._update_display(msg)
+        # Player Error
+        self.label_player_error = tk.Label(self, text="")
+        self.label_player_error.pack()
 
-    def _update_button(self, clicked_btn):
-        clicked_btn.config(text=self._game.current_player.label)
-        clicked_btn.config(fg=self._game.current_player.color)
+        # Player Button
+        player_button = tk.Button(self, text="Start", command=self.player_checker)
+        player_button.pack()
 
-    def _update_display(self, msg, color="black"):
-        self.display["text"] = msg
-        self.display["fg"] = color
+    def player_checker(self):
+        error = ""
+        if self.combo_char.get() == "":
+            error += "Please Select x or o\n"
+        if self.combo_turns == "":
+            error += "Please Select First or Second\n"
+        self.label_player_error.config(text=error)
 
-    def _highlight_cells(self):
-        for button, coordinates in self._cells.items():
-            if coordinates in self._game.winner_combo:
-                button.config(highlightbackground="red")
+        # Valid Player
+        if error == "":
+            char = self.tokens.index(self.combo_char.get()) + 1
+            turn = self.turns.index(self.combo_turns.get()) + 1
+            self.controller.player_token = char
+            self.player_game(char, turn)
 
-    def reset_board(self):
-        """Reset the game's board to play again."""
-        self._game.reset_game()
-        self._update_display(msg="Ready?")
-        for button in self._cells.keys():
-            button.config(highlightbackground="lightblue")
-            button.config(text="")
-            button.config(fg="black")
+    def loop_creator(self):
+        # Iterations Info
+        self.label_iterations = tk.Label(self, text="Please Enter Iterations to Play")
+        self.label_iterations.pack()
+        self.entry_iterations = tk.Entry(self)
+        self.entry_iterations.pack()
 
-def main():
-    """Create the game's board and run its main loop."""
-    game = TicTacToeGame()
-    board = TicTacToeBoard(game)
-    board.mainloop()
+        # Iterations error
+        self.label_iterations_error = tk.Label(self, text="")
+        self.label_iterations_error.pack()
 
-if __name__ == "__main__":
-    main()
+        # Iterations Button
+        iter_button = tk.Button(self, text="Start", command=self.loop_checker)
+        iter_button.pack()
+
+    def loop_checker(self):
+        # Ensure valid iterations
+        iterations = 0
+        error = ""
+        try:
+            iterations = int(self.entry_iterations.get())
+        except ValueError:
+            iterations = -1
+        if iterations <= 0:
+            error += "Please Enter Iterations Larger than 0"
+        self.label_iterations_error.config(text=error)
+
+        # Valid iterations
+        if error == "":
+            self.ai_game()
+            self.controller.game_wrapper.iterations = iterations
+
+    def ai_game(self):
+        player_ai = Player(AI_Player(2, 1), 1, 1)
+        player_ai_2 = Player(AI_Player(1, 2), 2, 2)
+        self.controller.game_wrapper = TicTacToeWrapper(player_ai, player_ai_2, self.controller.game_size)
+        self.controller.generate_game_frame()
+
+
+    def player_game(self, token, turn):
+        player = Player("Player", token, turn)
+        ai_turn = [item for item in range(3) if (item > 0 and item != turn)]
+        ai_char = [item for item in range(3) if (item > 0 and item != token)]
+        player_ai = Player(AI_Player(token, ai_char), ai_char, ai_turn[0])
+        self.controller.game_wrapper = TicTacToeWrapper(player, player_ai, self.controller.game_size)
+        self.controller.generate_game_frame()
+
+
+class GameFrame(tk.Frame):
+    def __init__(self, parent, controller):
+        self.wrapper = controller.
+        self.controller = controller
+        for i in range(controller.game_size):
+            for j in range(controller.game_size):
+                button = tk.Button(self, text="_", command=lambda : self.try_turn(button, i, j))
+                self.update_button(button, i, j)
+    def try_turn(self, button, i, j):
+        if self.get_game_token() == "_"
+    def update_button(self, button, i, j):
+        text = self.get_game_token(i, j)
+        button.configure(text=text)
+        root.after(1000, self.update, button, i, j)
+
+    def get_game_token(self, i, j):
+        return self.controller.game_wrapper.board[i][j]
+
+
+
+root = App()
+Winner.init()
+root.mainloop()

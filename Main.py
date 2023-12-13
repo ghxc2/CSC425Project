@@ -189,6 +189,20 @@ class TicTacToeGame:
             else:
                 print("Taken, Please Enter Coordinates")
 
+    def get_user_turn(self, i, j, letter):
+
+        row = i
+        col = j
+        valid = self.check_spot_availability(row, col)
+        valid_choices = range(self.size + 1)[1:]
+        if row not in valid_choices or col not in valid_choices:
+            valid = False
+            print(f"Please Enter Valid Coordinates (1 - {self.size})")
+        if valid:
+            self.claim_spot(row, col, letter)
+            return
+        else:
+            raise Exception("Invalid")
     def turn(self):
         """
         turn() processes the turn for the current player
@@ -236,6 +250,29 @@ class TicTacToeGame:
             print(f"False Found Wins: {self.incorrect_win_finds}")
         return
 
+    def gui_play(self):
+        while self.running:
+            self.print_board()
+            self.gui_turn()
+            if self.current_player == 1:
+                self.current_player = 2
+            else:
+                self.current_player = 1
+
+            self.check_board()
+
+    def gui_turn(self):
+        if self.current_player == 1:
+            player = self.player_1
+            player_letter = self.player_1_letter
+        else:
+            player = self.player_2
+            player_letter = self.player_2_letter
+
+        if isinstance(player, AI_Player):
+            self.turn()
+        else:
+            self.wait = True
 
 class TicTacToeWrapper:
     def __init__(self, player_1, player_2, size):
@@ -288,19 +325,19 @@ class Player:
 
 
 def choose_game():
-    type = 0
-    while type not in {1, 2, 3}:
+    game_type = 0
+    while game_type not in {1, 2, 3}:
         print("Please Select Game Type to Play:")
         print("1. Player v AI")
         print("2. AI v AI Normal")
         print("3. AI v AI Loop")
-        type = int(input("Select (1, 2, 3): "))
+        game_type = int(input("Select (1, 2, 3): "))
     size = 0
     while size <= 0:
         size = int(input("Enter Board Size: "))
     wrapper = None
     # Set Up Type
-    if type == 1:
+    if game_type == 1:
         print("Please Select Player Info: ")
         char = ""
         while char.lower() not in {"x", "o"}:
@@ -330,11 +367,11 @@ def choose_game():
 
         # Create Game
         wrapper = TicTacToeWrapper(player_ai, player, size)
-    elif type == 2 or type == 3:
+    elif game_type == 2 or game_type == 3:
         player_ai = Player(AI_Player(2, 1), 1, 1)
         player_ai_2 = Player(AI_Player(1, 2), 2, 2)
         wrapper = TicTacToeWrapper(player_ai, player_ai_2, size)
-        if type == 3:
+        if game_type == 3:
 
             iterations = 0
             while iterations <= 0:
