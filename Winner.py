@@ -5,6 +5,8 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
+# ref https://www.kaggle.com/code/johndoea/tic-tac-toe-decision-tree
+
 df = pd.read_csv("tic-tac-toe.csv")
 decider = None
 
